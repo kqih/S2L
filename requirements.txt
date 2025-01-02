@@ -5,4 +5,5 @@ tqdm
 pillow
 opencv-python
 XlsxWriter
+pandas
 cellpose[gui]
