@@ -14,6 +14,7 @@ from libs.segment import StopFlag as Cellpose
 from libs.mastersheet import genmasterSheet
 import cupy
 from libs.train import Trainer
+import subprocess, sys
 
 
 # Helper functions
@@ -149,6 +150,9 @@ class SegmentationApp(QWidget):
                 font-size: 16px;
             }
         """)
+
+
+        
         form_layout.addRow(self.segmentation_checkbox)
         form_layout.addRow(self.labels2rois_checkbox)
 
@@ -176,6 +180,24 @@ class SegmentationApp(QWidget):
         """)
         self.run_button.clicked.connect(self.run_process)
 
+
+        self.cellpose_button = QPushButton("Open Cellpose GUI", self)
+         # Set position and size
+        self.cellpose_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                padding: 15px;
+                border-radius: 5px;
+                border: none;
+                font-size: 18px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        self.cellpose_button.clicked.connect(self.run_cellpose)
+
         # Set dynamic CUDA status label
         self.cuda_status_label = QLabel("CUDA detected." if self.cuda_available else "CUDA not detected.")
         self.cuda_status_label.setStyleSheet("""
@@ -189,6 +211,7 @@ class SegmentationApp(QWidget):
         layout.addLayout(form_layout)
         layout.addWidget(self.run_button)
         layout.addWidget(self.cuda_status_label)
+        layout.addWidget(self.cellpose_button)
 
         self.setLayout(layout)
         self.setStyleSheet("""
@@ -222,6 +245,9 @@ class SegmentationApp(QWidget):
         )
         self.worker_thread.finished.connect(self.process_finished)
         self.worker_thread.start()
+
+    def run_cellpose(self):
+        subprocess.Popen([sys.executable, "-m", "cellpose"])
 
     def process_finished(self):
         QMessageBox.information(self, "Process Complete", "The image processing is complete.")
@@ -259,26 +285,26 @@ class TrainingApp(QWidget):
         form_layout.addRow("Training Directory:", self.train_dir_entry)
         form_layout.addRow("", train_dir_button)
 
-        self.test_dir_entry = QLineEdit()
-        test_dir_button = QPushButton("Browse")
-        test_dir_button.setStyleSheet("""
-            QPushButton {
-                background-color: #1D1D1D;
-                color: white;
-                padding: 10px;
-                border-radius: 5px;
-                border: 1px solid #4CAF50;
-            }
-            QPushButton:hover {
-                background-color: #333;
-            }
-        """)
-        test_dir_button.clicked.connect(self.browse_test_dir)
-        form_layout.addRow("Testing Directory:", self.test_dir_entry)
-        form_layout.addRow("", test_dir_button)
+        # self.test_dir_entry = QLineEdit()
+        # test_dir_button = QPushButton("Browse")
+        # test_dir_button.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #1D1D1D;
+        #         color: white;
+        #         padding: 10px;
+        #         border-radius: 5px;
+        #         border: 1px solid #4CAF50;
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #333;
+        #     }
+        # """)
+        # test_dir_button.clicked.connect(self.browse_test_dir)
+        # form_layout.addRow("Testing Directory (Optional):", self.test_dir_entry)
+        # form_layout.addRow("", test_dir_button)
 
         self.model_combo = QComboBox()
-        self.model_combo.addItems(["cyto", "cyto2", "nuclei"])
+        self.model_combo.addItems(["cyto", "cyto2", "cyto3", "nuclei"])
         form_layout.addRow("Model Type:", self.model_combo)
 
         self.channels_input = QLineEdit("1,2")
@@ -302,6 +328,14 @@ class TrainingApp(QWidget):
         self.model_name_entry = QLineEdit("my_new_model")
         form_layout.addRow("Model Name:", self.model_name_entry)
 
+        # Mask filter field (new addition)
+        self.mask_filter_entry = QLineEdit("_cp_masks")  # Default value is "_cp_masks"
+        form_layout.addRow("Mask Filter (e.g., _cp_masks):", self.mask_filter_entry)
+
+        # Image filter field (new addition)
+        self.img_filter_entry = QLineEdit("_img")  # Default value is "_img"
+        form_layout.addRow("Image Filter (e.g., _img):", self.img_filter_entry)
+
         train_button = QPushButton("Train")
         train_button.setStyleSheet("""
             QPushButton {
@@ -320,7 +354,7 @@ class TrainingApp(QWidget):
 
         layout.addLayout(form_layout)
         layout.addWidget(train_button)
-
+    
         self.setLayout(layout)
 
     def browse_train_dir(self):
@@ -334,37 +368,61 @@ class TrainingApp(QWidget):
     def start_training(self):
         # Get user inputs
         train_dir = self.train_dir_entry.text()
-        test_dir = self.test_dir_entry.text()
+        # test_dir = self.test_dir_entry.text()
         model_name = self.model_name_entry.text()
         model_type = self.model_combo.currentText()
         channels = [int(x) for x in self.channels_input.text().split(",")]
         epochs = self.epochs_spinbox.value()
         learning_rate = self.lr_spinbox.value()
         normalize = self.normalize_checkbox.isChecked()
+        mask_filter = self.mask_filter_entry.text()  # Retrieve the mask filter value
+        img_filter = self.img_filter_entry.text()  # Retrieve the image filter value
 
-        if not train_dir or not test_dir:
-            QMessageBox.warning(self, "Input Error", "Please select both training and testing directories.")
+        print(model_name)
+        print(model_type)
+
+        if not train_dir:
+            QMessageBox.warning(self, "Input Error", "Please select a training directory.")
             return
 
+        # # Debug log for optional test directory
+        # if not test_dir:
+        #     print("No test directory provided. Proceeding without validation.")
+
         # Create Trainer instance
-        trainer = Trainer(train_dir, test_dir)
+        trainer = Trainer(
+            train_dir=train_dir,
+            # test_dir=test_dir if test_dir else None,  # Pass None if test_dir is empty
+            mask_filter=mask_filter,
+            img_filter=img_filter,
+        )
 
         # Train the model
         try:
             model_path, train_losses, test_losses = trainer.train(
                 model_name=model_name,
-                model=model_type,
                 channels=channels,
                 epochs=epochs,
                 learning_rate=learning_rate,
                 normalize=normalize
             )
 
-            # Show completion message with model path and losses
-            QMessageBox.information(self, "Training Complete", f"Training Complete!\nModel saved at: {model_path}\nTrain Loss: {train_losses[-1]}\nTest Loss: {test_losses[-1]}")
-        
+            
+            test_loss_msg = ""
+            
+            try:
+                QMessageBox.information(self, "Training Complete", 
+                                        f"Training Complete!\nModel saved at: {model_path}\nTrain Loss: {train_losses[-1]}{test_loss_msg}\nPrecision: {trainer.evaluate_precision()}")
+            except ValueError:
+                QMessageBox.information(self, "Training Complete", 
+                                        f"Training Complete!\nModel saved at: {model_path}\nTrain Loss: {train_losses[-1]}{test_loss_msg}")
+
+
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Training failed: {e}")
+         
+
+
 
 # Main App
 class MainApp(QMainWindow):
