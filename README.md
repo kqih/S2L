@@ -3,4 +3,4 @@
 
 You can fix by deleting the libs\roi_visualizer files
 
-Delete the roi_visualizer.py file if you want CUDA, else delete roi_visualizer.cp311-win_amd64.pyd of you dont have CUDA
+Delete the roi_visualizer.py file if you want CUDA, else delete roi_visualizer.cp311-win_amd64.pyd if you dont have CUDA
