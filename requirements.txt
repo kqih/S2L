@@ -1,4 +1,3 @@
-imghdr
 matplotlib
 numpy
 openpyxl
