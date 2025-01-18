@@ -178,7 +178,25 @@ class SegmentationApp(QWidget):
         # Custom Model Path
         self.custom_model_entry = QLineEdit()
         self.custom_model_entry.setPlaceholderText("Enter custom model path...")
+        
+        # Custom Model Browse Button
+        custom_model_button = QPushButton("Browse")
+        custom_model_button.setStyleSheet("""
+            QPushButton {
+                background-color: #1D1D1D;
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                border: 1px solid #4CAF50;
+            }
+            QPushButton:hover {
+                background-color: #333;
+            }
+        """)
+        custom_model_button.clicked.connect(self.select_custom_model)
+
         form_layout.addRow("Custom Model Path:", self.custom_model_entry)
+        form_layout.addRow("", custom_model_button)
 
         self.run_button = QPushButton("Run Process")
         self.run_button.setStyleSheet("""
@@ -244,6 +262,12 @@ class SegmentationApp(QWidget):
         self.output_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory")
         self.output_dir_entry.setText(self.output_dir)
 
+    def select_custom_model(self):
+        # Allow the user to select a custom model file using QFileDialog
+        custom_model_path, _ = QFileDialog.getOpenFileName(self, "Select Custom Model", "", "Model Files (*.h5 *.pth *.pt);;All Files (*)")
+        if custom_model_path:
+            self.custom_model_entry.setText(custom_model_path)
+
     def update_diameter(self):
         self.diameter = self.diameter_spinbox.value()
 
@@ -278,7 +302,6 @@ class SegmentationApp(QWidget):
 
     def process_finished(self):
         QMessageBox.information(self, "Process Complete", "The image processing is complete.")
-
 
 
 class TrainingApp(QWidget):
