@@ -12,13 +12,21 @@ import re
 import libs.roi_visualizer
 from libs.segment import StopFlag as Cellpose
 from libs.mastersheet import genmasterSheet
-import cupy
 from libs.train import Trainer
 import subprocess, sys
 
 
+
+
+
 # Helper functions
 def check_cuda_availability():
+
+    try:
+        import cupy
+    except ImportError:
+        return False
+
     """Check if CUDA Toolkit is available using cupy."""
     try:
         return cupy.is_available()
