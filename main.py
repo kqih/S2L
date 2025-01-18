@@ -420,7 +420,7 @@ class TrainingApp(QWidget):
             
             try:
                 QMessageBox.information(self, "Training Complete", 
-                                        f"Training Complete!\nModel saved at: {model_path}\nTrain Loss: {train_losses[-1]}{test_loss_msg}\nPrecision: {trainer.evaluate_precision()}")
+                                        f"Training Complete!\nModel saved at: {model_path}\nTrain Loss: {train_losses[-1]}{test_loss_msg}")
             except ValueError:
                 QMessageBox.information(self, "Training Complete", 
                                         f"Training Complete!\nModel saved at: {model_path}\nTrain Loss: {train_losses[-1]}{test_loss_msg}")
