@@ -35,18 +35,18 @@ def check_cuda_availability():
         return False
 
 
-# Worker Thread for Segmentation
 class WorkerThread(QThread):
     finished = pyqtSignal()
 
-    def __init__(self, base_dir, output_dir, diameter, run_segmentation, run_labels2rois):
+    def __init__(self, base_dir, output_dir, diameter, run_segmentation, run_labels2rois, model_type):
         super().__init__()
         self.base_dir = base_dir
         self.output_dir = output_dir
         self.diameter = diameter
         self.run_segmentation = run_segmentation
         self.run_labels2rois = run_labels2rois
-        self.cellpose = Cellpose()
+        self.model_type = model_type
+        self.cellpose = Cellpose(model_type=self.model_type)
 
     def run(self):
         if self.run_segmentation:
@@ -159,8 +159,6 @@ class SegmentationApp(QWidget):
             }
         """)
 
-
-        
         form_layout.addRow(self.segmentation_checkbox)
         form_layout.addRow(self.labels2rois_checkbox)
 
@@ -168,10 +166,19 @@ class SegmentationApp(QWidget):
         self.diameter_spinbox = QSpinBox()
         self.diameter_spinbox.setRange(1, 100)
         self.diameter_spinbox.setValue(0)
-        self.diameter_spinbox.setStyleSheet("")  # Reset to default styling
-        
+        self.diameter_spinbox.setStyleSheet("background-color: #2B2B2B; color: white; border-radius: 5px; padding: 10px; height: 30px; font-size: 14px;")
         self.diameter_spinbox.valueChanged.connect(self.update_diameter)
         form_layout.addRow("Cellpose Diameter:", self.diameter_spinbox)
+
+        # Model Type ComboBox
+        self.model_combo = QComboBox()
+        self.model_combo.addItems(["cyto", "cyto2", "cyto3", "nuclei", "Custom Model"])
+        form_layout.addRow("Model Type:", self.model_combo)
+
+        # Custom Model Path
+        self.custom_model_entry = QLineEdit()
+        self.custom_model_entry.setPlaceholderText("Enter custom model path...")
+        form_layout.addRow("Custom Model Path:", self.custom_model_entry)
 
         self.run_button = QPushButton("Run Process")
         self.run_button.setStyleSheet("""
@@ -189,9 +196,7 @@ class SegmentationApp(QWidget):
         """)
         self.run_button.clicked.connect(self.run_process)
 
-
         self.cellpose_button = QPushButton("Open Cellpose GUI", self)
-         # Set position and size
         self.cellpose_button.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
@@ -247,10 +252,23 @@ class SegmentationApp(QWidget):
             QMessageBox.warning(self, "Input Error", "Please select both base and output directories.")
             return
 
+        # Get selected model type
+        model_type = self.model_combo.currentText()
+
+        # If Custom Model is selected, use the path from the custom model input field
+        if model_type == "Custom Model":
+            custom_model_path = self.custom_model_entry.text()
+            if not os.path.exists(custom_model_path):
+                QMessageBox.warning(self, "Invalid Path", "The custom model path does not exist.")
+                return
+            model_type = custom_model_path  # Pass the custom model path instead of a predefined model
+
+        # Create Worker Thread for processing
         self.worker_thread = WorkerThread(
             self.base_dir, self.output_dir, self.diameter,
             self.segmentation_checkbox.isChecked(),
-            self.labels2rois_checkbox.isChecked()
+            self.labels2rois_checkbox.isChecked(),
+            model_type=model_type  # Pass model_type to the worker thread
         )
         self.worker_thread.finished.connect(self.process_finished)
         self.worker_thread.start()
