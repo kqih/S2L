@@ -24,15 +24,35 @@ class StopFlag:
             return
 
         stop_flag = StopFlag()
-        channels = [[0, 0]]
 
         for idx, filename in enumerate(tqdm.tqdm(files)):
             if stop_flag.stop:
                 break
+
+            # Load the image and handle different image types
+            img = io.imread(filename)
+
+            if len(img.shape) == 2:  # Grayscale
+                channels = [[0, 0]]
+            elif len(img.shape) == 3:  # RGB or multi-channel
+                if img.shape[2] == 3:  # RGB
+                    channels = [[2, 1], [1, 2]]  # Example: Red-Green and Green-Red
+                else:  # Other multi-channel images
+                    channels = [[0, 0]]  # Default to no channels
+            else:
+                print(f"Unsupported image shape: {img.shape}, skipping...")
+                continue
+
+            img_smoothed = transforms.smooth_sharpen_img(img, smooth_radius=1, sharpen_radius=0)
+
             for chan in channels:
-                img = io.imread(filename)
-                img_smoothed = transforms.smooth_sharpen_img(img, smooth_radius=1, sharpen_radius=0)
-                masks, flows, styles, diams = self.model.eval(img_smoothed, diameter=diameter, channels=chan, flow_threshold=0.3, cellprob_threshold=0)
+                masks, flows, styles, diams = self.model.eval(
+                    img_smoothed, 
+                    diameter=diameter, 
+                    channels=chan, 
+                    flow_threshold=0.3, 
+                    cellprob_threshold=0
+                )
                 img_normalized = transforms.normalize99(img, lower=1, upper=99)
 
                 def save_masks_with_timeout(img, masks, flows, filename):
