@@ -166,7 +166,7 @@ class SegmentationApp(QWidget):
         self.diameter_spinbox = QSpinBox()
         self.diameter_spinbox.setRange(1, 100)
         self.diameter_spinbox.setValue(0)
-        self.diameter_spinbox.setStyleSheet("background-color: #2B2B2B; color: white; border-radius: 5px; padding: 10px; height: 30px; font-size: 14px;")
+        self.diameter_spinbox.setStyleSheet("")
         self.diameter_spinbox.valueChanged.connect(self.update_diameter)
         form_layout.addRow("Cellpose Diameter:", self.diameter_spinbox)
 
