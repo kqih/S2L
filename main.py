@@ -264,7 +264,7 @@ class SegmentationApp(QWidget):
 
     def select_custom_model(self):
         # Allow the user to select a custom model file using QFileDialog
-        custom_model_path, _ = QFileDialog.getOpenFileName(self, "Select Custom Model", "", "Model Files (*.h5 *.pth *.pt);;All Files (*)")
+        custom_model_path, _ = QFileDialog.getOpenFileName(self, "Select Model File", "", "All Files (*)")
         if custom_model_path:
             self.custom_model_entry.setText(custom_model_path)
 
