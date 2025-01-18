@@ -443,6 +443,29 @@ class MainApp(QMainWindow):
         self.tabs.addTab(SegmentationApp(), "Segmentation")
         self.tabs.addTab(TrainingApp(), "Training")
 
+        # Customize the QTabWidget style
+        self.tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #444444;
+                background: #1F1F1F;
+            }
+            QTabBar::tab {
+                background: #333333;
+                color: white;
+                padding: 10px;
+                border: 1px solid #444444;
+                border-bottom: none;
+            }
+            QTabBar::tab:selected {
+                background: #4CAF50;
+                color: white;
+                font-weight: bold;
+            }
+            QTabBar::tab:hover {
+                background: #555555;
+            }
+        """)
+
         self.setCentralWidget(self.tabs)
 
 
