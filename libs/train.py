@@ -1,6 +1,6 @@
 import os
 from cellpose import io, models, train, metrics
-import cupy as np
+
 
 class Trainer:
     def __init__(self, train_dir, test_dir=None, img_filter="_img", mask_filter="_masks", look_one_level_down=True):
@@ -97,32 +97,4 @@ class Trainer:
 
         except Exception as e:
             raise RuntimeError(f"Error during training: {e}")
-    def evaluate_precision(self):
-        """
-        Evaluates the precision of the trained model using the test dataset.
-
-        :return: Precision score.
-        """
-        if not self.test_dir:
-            raise ValueError("Test directory not provided. Cannot evaluate precision.")
-
-        # Extract test images and labels
-        _, _, _, test_images, test_labels, _ = self.output
-
-        # Load the trained model
-        model = models.CellposeModel(gpu=True)
-
-        # Generate predictions for the test images
-        predictions = []
-        for img in test_images:
-            masks, flows, styles, diams = model.eval(img, channels=[0, 0])  # Adjust channels as needed
-            predictions.append(masks)
-
-        # Flatten labels and predictions to compute precision
-        y_true = np.concatenate([lbl.flatten() for lbl in test_labels])
-        y_pred = np.concatenate([pred.flatten() for pred in predictions])
-
-        # Calculate precision using Cellpose metrics
-        precision = metrics.average_precision(y_true, y_pred)
-        print(f"Precision: {precision:.4f}")
-        return precision
+    
