@@ -90,7 +90,6 @@ class WorkerThread(QThread):
     def get_file_base_name(self, file_path):
         return os.path.splitext(os.path.basename(file_path))[0]
 
-
 class SegmentationApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -166,13 +165,16 @@ class SegmentationApp(QWidget):
         self.diameter_spinbox = QSpinBox()
         self.diameter_spinbox.setRange(1, 100)
         self.diameter_spinbox.setValue(0)
-        self.diameter_spinbox.setStyleSheet("")
+        self.diameter_spinbox.setStyleSheet("background-color: #2B2B2B; color: white; border-radius: 5px; padding: 10px; height: 30px; font-size: 14px;")
         self.diameter_spinbox.valueChanged.connect(self.update_diameter)
         form_layout.addRow("Cellpose Diameter:", self.diameter_spinbox)
 
-        # Model Type ComboBox
+        # Model Type ComboBox (Including Dataset-specific models)
         self.model_combo = QComboBox()
-        self.model_combo.addItems(["cyto", "cyto2", "cyto3", "nuclei", "Custom Model"])
+        self.model_combo.addItems([
+            "cyto", "cyto2", "cyto3", "nuclei", "Custom Model",
+            "TissueNet", "DeepCell", "XenoNet", "Cytoskeleton", "NeuronNet"
+        ])
         form_layout.addRow("Model Type:", self.model_combo)
 
         # Custom Model Path
@@ -264,7 +266,7 @@ class SegmentationApp(QWidget):
 
     def select_custom_model(self):
         # Allow the user to select a custom model file using QFileDialog
-        custom_model_path, _ = QFileDialog.getOpenFileName(self, "Select Model File", "", "All Files (*)")
+        custom_model_path, _ = QFileDialog.getOpenFileName(self, "Select Custom Model", "", "Model Files (*.h5 *.pth *.pt);;All Files (*)")
         if custom_model_path:
             self.custom_model_entry.setText(custom_model_path)
 
@@ -302,6 +304,8 @@ class SegmentationApp(QWidget):
 
     def process_finished(self):
         QMessageBox.information(self, "Process Complete", "The image processing is complete.")
+
+
 
 
 class TrainingApp(QWidget):
