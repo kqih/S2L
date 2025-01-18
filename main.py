@@ -168,7 +168,44 @@ class SegmentationApp(QWidget):
         self.diameter_spinbox = QSpinBox()
         self.diameter_spinbox.setRange(1, 100)
         self.diameter_spinbox.setValue(0)
-        self.diameter_spinbox.setStyleSheet("background-color: #2B2B2B; color: white; border-radius: 5px; padding: 10px; height: 30px; font-size: 14px;")
+        self.diameter_spinbox.setStyleSheet("""
+QSpinBox {
+    background-color: #2B2B2B;
+    color: white;
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 14px;
+    height: 30px;
+}
+QSpinBox::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 16px;
+    border: none;
+    background-color: #4CAF50;
+    border-top-right-radius: 5px;
+    }
+QSpinBox::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    width: 16px;
+    border: none;
+    background-color: #4CAF50;
+    border-bottom-right-radius: 5px;
+}
+QSpinBox::up-arrow {
+    width: 8px;
+    height: 8px;
+    image: url(data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 24 24'><path fill='white' d='M12 8l6 6H6z'/></svg>);
+}
+QSpinBox::down-arrow {
+    width: 8px;
+    height: 8px;
+    image: url(data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 24 24'><path fill='white' d='M12 16l-6-6h12z'/></svg>);
+}
+""")
+
+        
         self.diameter_spinbox.valueChanged.connect(self.update_diameter)
         form_layout.addRow("Cellpose Diameter:", self.diameter_spinbox)
 
