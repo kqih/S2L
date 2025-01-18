@@ -173,7 +173,7 @@ class SegmentationApp(QWidget):
         self.model_combo = QComboBox()
         self.model_combo.addItems([
             "cyto", "cyto2", "cyto3", "nuclei", "Custom Model",
-            "TissueNet", "DeepCell", "XenoNet", "Cytoskeleton", "NeuronNet"
+            "tissuenet_cp3", "livecell_cp3", "deepbacs_cp3"
         ])
         form_layout.addRow("Model Type:", self.model_combo)
 
@@ -266,7 +266,7 @@ class SegmentationApp(QWidget):
 
     def select_custom_model(self):
         # Allow the user to select a custom model file using QFileDialog
-        custom_model_path, _ = QFileDialog.getOpenFileName(self, "Select Custom Model", "", "Model Files (*.h5 *.pth *.pt);;All Files (*)")
+        custom_model_path, _ = QFileDialog.getOpenFileName(self, "Select Model File", "", "All Files (*)")
         if custom_model_path:
             self.custom_model_entry.setText(custom_model_path)
 
@@ -358,7 +358,10 @@ class TrainingApp(QWidget):
         # form_layout.addRow("", test_dir_button)
 
         self.model_combo = QComboBox()
-        self.model_combo.addItems(["cyto", "cyto2", "cyto3", "nuclei"])
+        self.model_combo.addItems([
+            "cyto", "cyto2", "cyto3", "nuclei",
+            "tissuenet_cp3", "livecell_cp3", "deepbacs_cp3"
+        ])
         form_layout.addRow("Model Type:", self.model_combo)
 
         self.channels_input = QLineEdit("1,2")
