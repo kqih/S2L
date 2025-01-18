@@ -5,6 +5,7 @@ import threading
 import os
 from cellpose import io, models, transforms
 import tqdm
+import imghdr
 
 class StopFlag:
     def __init__(self):
@@ -29,9 +30,17 @@ class StopFlag:
             if stop_flag.stop:
                 break
 
-            # Load the image and handle different image types
-            img = io.imread(filename)
+            # Ensure the file is a valid image
+            if imghdr.what(filename) is None:
+                print(f"Skipping non-image file: {filename}")
+                continue
 
+            img = io.imread(filename)
+            if img is None:
+                print(f"Failed to read image: {filename}")
+                continue
+
+            # Handle different image types
             if len(img.shape) == 2:  # Grayscale
                 channels = [[0, 0]]
             elif len(img.shape) == 3:  # RGB or multi-channel
