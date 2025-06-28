@@ -94,7 +94,6 @@ class WorkerThread(QThread):
     def get_file_base_name(self, file_path):
         return os.path.splitext(os.path.basename(file_path))[0]
 
-
 class SegmentationApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -174,34 +173,6 @@ class SegmentationApp(QWidget):
         self.diameter_spinbox.valueChanged.connect(self.update_diameter)
         form_layout.addRow("Cellpose Diameter:", self.diameter_spinbox)
 
-        # Model Type ComboBox
-        self.model_combo = QComboBox()
-        self.model_combo.addItems(["cyto", "cyto2", "cyto3", "nuclei", "Custom Model"])
-        form_layout.addRow("Model Type:", self.model_combo)
-
-        # Custom Model Path
-        self.custom_model_entry = QLineEdit()
-        self.custom_model_entry.setPlaceholderText("Enter custom model path...")
-        
-        # Custom Model Browse Button
-        custom_model_button = QPushButton("Browse")
-        custom_model_button.setStyleSheet("""
-            QPushButton {
-                background-color: #1D1D1D;
-                color: white;
-                padding: 10px;
-                border-radius: 5px;
-                border: 1px solid #4CAF50;
-            }
-            QPushButton:hover {
-                background-color: #333;
-            }
-        """)
-        custom_model_button.clicked.connect(self.select_custom_model)
-
-        form_layout.addRow("Custom Model Path:", self.custom_model_entry)
-        form_layout.addRow("", custom_model_button)
-
         self.run_button = QPushButton("Run Process")
         self.run_button.setStyleSheet("""
             QPushButton {
@@ -218,7 +189,23 @@ class SegmentationApp(QWidget):
         """)
         self.run_button.clicked.connect(self.run_process)
 
-        
+
+        self.cellpose_button = QPushButton("Open Cellpose GUI", self)
+         # Set position and size
+        self.cellpose_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                padding: 15px;
+                border-radius: 5px;
+                border: none;
+                font-size: 18px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        self.cellpose_button.clicked.connect(self.run_cellpose)
 
         # Set dynamic CUDA status label
         self.cuda_status_label = QLabel("CUDA detected." if self.cuda_available else "CUDA not detected.")
@@ -259,12 +246,6 @@ class SegmentationApp(QWidget):
         self.output_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory")
         self.output_dir_entry.setText(self.output_dir)
 
-    def select_custom_model(self):
-        # Allow the user to select a custom model file using QFileDialog
-        custom_model_path, _ = QFileDialog.getOpenFileName(self, "Select Custom Model", "", "Model Files (*.h5 *.pth *.pt);;All Files (*)")
-        if custom_model_path:
-            self.custom_model_entry.setText(custom_model_path)
-
     def update_diameter(self):
         self.diameter = self.diameter_spinbox.value()
 
@@ -299,6 +280,7 @@ class SegmentationApp(QWidget):
 
     def process_finished(self):
         QMessageBox.information(self, "Process Complete", "The image processing is complete.")
+
 
 
 class TrainingApp(QWidget):
@@ -351,7 +333,10 @@ class TrainingApp(QWidget):
         # form_layout.addRow("", test_dir_button)
 
         self.model_combo = QComboBox()
-        self.model_combo.addItems(["cyto", "cyto2", "cyto3", "nuclei"])
+        self.model_combo.addItems([
+            "cyto", "cyto2", "cyto3", "nuclei",
+            "tissuenet_cp3", "livecell_cp3", "deepbacs_cp3"
+        ])
         form_layout.addRow("Model Type:", self.model_combo)
 
         self.channels_input = QLineEdit("1,2")
