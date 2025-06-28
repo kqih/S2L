@@ -17,7 +17,11 @@ import subprocess, sys
 
 
 
-
+def install_himena_plugins():
+    try:
+        subprocess.call("himena --install himena-image")
+    except:
+        pass
 
 # Helper functions
 def check_cuda_availability():
@@ -35,18 +39,18 @@ def check_cuda_availability():
         return False
 
 
-# Worker Thread for Segmentation
 class WorkerThread(QThread):
     finished = pyqtSignal()
 
-    def __init__(self, base_dir, output_dir, diameter, run_segmentation, run_labels2rois):
+    def __init__(self, base_dir, output_dir, diameter, run_segmentation, run_labels2rois, model_type):
         super().__init__()
         self.base_dir = base_dir
         self.output_dir = output_dir
         self.diameter = diameter
         self.run_segmentation = run_segmentation
         self.run_labels2rois = run_labels2rois
-        self.cellpose = Cellpose()
+        self.model_type = model_type
+        self.cellpose = Cellpose(model_type=self.model_type)
 
     def run(self):
         if self.run_segmentation:
@@ -159,8 +163,6 @@ class SegmentationApp(QWidget):
             }
         """)
 
-
-        
         form_layout.addRow(self.segmentation_checkbox)
         form_layout.addRow(self.labels2rois_checkbox)
 
@@ -168,10 +170,37 @@ class SegmentationApp(QWidget):
         self.diameter_spinbox = QSpinBox()
         self.diameter_spinbox.setRange(1, 100)
         self.diameter_spinbox.setValue(0)
-        self.diameter_spinbox.setStyleSheet("")  # Reset to default styling
-        
+        self.diameter_spinbox.setStyleSheet("background-color: #2B2B2B; color: white; border-radius: 5px; padding: 10px; height: 30px; font-size: 14px;")
         self.diameter_spinbox.valueChanged.connect(self.update_diameter)
         form_layout.addRow("Cellpose Diameter:", self.diameter_spinbox)
+
+        # Model Type ComboBox
+        self.model_combo = QComboBox()
+        self.model_combo.addItems(["cyto", "cyto2", "cyto3", "nuclei", "Custom Model"])
+        form_layout.addRow("Model Type:", self.model_combo)
+
+        # Custom Model Path
+        self.custom_model_entry = QLineEdit()
+        self.custom_model_entry.setPlaceholderText("Enter custom model path...")
+        
+        # Custom Model Browse Button
+        custom_model_button = QPushButton("Browse")
+        custom_model_button.setStyleSheet("""
+            QPushButton {
+                background-color: #1D1D1D;
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                border: 1px solid #4CAF50;
+            }
+            QPushButton:hover {
+                background-color: #333;
+            }
+        """)
+        custom_model_button.clicked.connect(self.select_custom_model)
+
+        form_layout.addRow("Custom Model Path:", self.custom_model_entry)
+        form_layout.addRow("", custom_model_button)
 
         self.run_button = QPushButton("Run Process")
         self.run_button.setStyleSheet("""
@@ -189,23 +218,7 @@ class SegmentationApp(QWidget):
         """)
         self.run_button.clicked.connect(self.run_process)
 
-
-        self.cellpose_button = QPushButton("Open Cellpose GUI", self)
-         # Set position and size
-        self.cellpose_button.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                padding: 15px;
-                border-radius: 5px;
-                border: none;
-                font-size: 18px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
-        self.cellpose_button.clicked.connect(self.run_cellpose)
+        
 
         # Set dynamic CUDA status label
         self.cuda_status_label = QLabel("CUDA detected." if self.cuda_available else "CUDA not detected.")
@@ -220,7 +233,14 @@ class SegmentationApp(QWidget):
         layout.addLayout(form_layout)
         layout.addWidget(self.run_button)
         layout.addWidget(self.cuda_status_label)
-        layout.addWidget(self.cellpose_button)
+        
+        # button_layout = QHBoxLayout()
+        # button_layout.addWidget(self.cellpose_button)
+        # button_layout.addWidget(self.enhancer_button)
+        # button_layout.addWidget(self.himena_button)
+        # layout.addLayout(button_layout)
+
+
 
         self.setLayout(layout)
         self.setStyleSheet("""
@@ -239,6 +259,12 @@ class SegmentationApp(QWidget):
         self.output_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory")
         self.output_dir_entry.setText(self.output_dir)
 
+    def select_custom_model(self):
+        # Allow the user to select a custom model file using QFileDialog
+        custom_model_path, _ = QFileDialog.getOpenFileName(self, "Select Custom Model", "", "Model Files (*.h5 *.pth *.pt);;All Files (*)")
+        if custom_model_path:
+            self.custom_model_entry.setText(custom_model_path)
+
     def update_diameter(self):
         self.diameter = self.diameter_spinbox.value()
 
@@ -247,20 +273,32 @@ class SegmentationApp(QWidget):
             QMessageBox.warning(self, "Input Error", "Please select both base and output directories.")
             return
 
+        # Get selected model type
+        model_type = self.model_combo.currentText()
+
+        # If Custom Model is selected, use the path from the custom model input field
+        if model_type == "Custom Model":
+            custom_model_path = self.custom_model_entry.text()
+            if not os.path.exists(custom_model_path):
+                QMessageBox.warning(self, "Invalid Path", "The custom model path does not exist.")
+                return
+            model_type = custom_model_path  # Pass the custom model path instead of a predefined model
+
+        # Create Worker Thread for processing
         self.worker_thread = WorkerThread(
             self.base_dir, self.output_dir, self.diameter,
             self.segmentation_checkbox.isChecked(),
-            self.labels2rois_checkbox.isChecked()
+            self.labels2rois_checkbox.isChecked(),
+            model_type=model_type  # Pass model_type to the worker thread
         )
         self.worker_thread.finished.connect(self.process_finished)
         self.worker_thread.start()
 
-    def run_cellpose(self):
-        subprocess.Popen([sys.executable, "-m", "cellpose"])
+
+
 
     def process_finished(self):
         QMessageBox.information(self, "Process Complete", "The image processing is complete.")
-
 
 
 class TrainingApp(QWidget):
@@ -431,7 +469,91 @@ class TrainingApp(QWidget):
             QMessageBox.warning(self, "Error", f"Training failed: {e}")
          
 
+import sys
+import os
+import subprocess
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QPushButton
+)
 
+
+class Helpers(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        self.cellpose_button = QPushButton("Open Cellpose GUI", self)
+        self.cellpose_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                padding: 15px;
+                border-radius: 5px;
+                border: none;
+                font-size: 18px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        self.cellpose_button.clicked.connect(self.run_cellpose)
+        layout.addWidget(self.cellpose_button)
+
+        self.enhancer_button = QPushButton("Open Preprocessing", self)
+        self.enhancer_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                padding: 15px;
+                border-radius: 5px;
+                border: none;
+                font-size: 18px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        self.enhancer_button.clicked.connect(self.run_enhancer)
+        layout.addWidget(self.enhancer_button)
+
+        self.himena_button = QPushButton("Open Himena", self)
+        self.himena_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                padding: 15px;
+                border-radius: 5px;
+                border: none;
+                font-size: 18px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        self.himena_button.clicked.connect(self.run_himena)
+        layout.addWidget(self.himena_button)
+
+        self.setLayout(layout)
+
+    def run_cellpose(self):
+        subprocess.Popen([sys.executable, "-m", "cellpose"])
+
+    def run_enhancer(self):
+        subprocess.Popen([sys.executable, os.path.join(os.path.dirname(__file__), "preprocessing.py")])
+
+    def run_himena(self):
+        try:
+            subprocess.Popen(["himena"])
+        except FileNotFoundError:
+            print("Himena executable not found. Ensure it's in your system PATH.")
+
+    
+    
 
 # Main App
 class MainApp(QMainWindow):
@@ -443,6 +565,7 @@ class MainApp(QMainWindow):
         self.tabs = QTabWidget()
         self.tabs.addTab(SegmentationApp(), "Segmentation")
         self.tabs.addTab(TrainingApp(), "Training")
+        self.tabs.addTab(Helpers(), "Helpers")
 
         # Customize the QTabWidget style
         self.tabs.setStyleSheet("""
@@ -471,6 +594,7 @@ class MainApp(QMainWindow):
 
 
 if __name__ == "__main__":
+    install_himena_plugins()
     app = QApplication(sys.argv)
     window = MainApp()
     window.show()

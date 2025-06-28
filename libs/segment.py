@@ -8,9 +8,19 @@ import tqdm
 import imghdr
 
 class StopFlag:
-    def __init__(self):
+    def __init__(self, model_type='cyto', custom_model_path=None):
+        """
+        Initialize the StopFlag with the specified model type or custom model.
+        """
         self.stop = False
-        self.model = models.Cellpose(gpu=torch.cuda.is_available(), model_type='cyto')  # Initialize Cellpose model
+
+        # Load the model
+        if custom_model_path:
+            print(f"Loading custom model from {custom_model_path}")
+            self.model = models.CellposeModel(pretrained_model=custom_model_path, gpu=torch.cuda.is_available())
+        else:
+            print(f"Using built-in model: {model_type}")
+            self.model = models.Cellpose(gpu=torch.cuda.is_available(), model_type=model_type)
 
     def segment(self, directory, diameter, progress_callback=None):
         start_time = time.time()
