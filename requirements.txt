@@ -7,3 +7,4 @@ opencv-python
 XlsxWriter
 pandas
 cellpose[gui]
+himena
