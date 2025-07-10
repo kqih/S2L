@@ -8,3 +8,4 @@ XlsxWriter
 pandas
 cellpose[gui]
 himena
+himena-image
